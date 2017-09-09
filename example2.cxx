@@ -3,8 +3,9 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-  ArgOpts args = { {'h', "help", "print help message"},
-                   {'v', "verbose", "print more"} };
+  ArgOpts::Parser args = { {'h', "help", "print help message"},
+                           {'v', "verbose", "print more"},
+                           {'f', "file", "[FILE] file name"} };
   
   auto options = args.parse(argc, argv);
   // first check for help
@@ -24,12 +25,7 @@ int main(int argc, char **argv) {
     }
     case 'f': {
       // Option to set a file name
-      // Check there's another argument after
-      if (opt.index == argc-1) {
-        std::cerr << "Missing argument to file option\nUsage: -f <file>\n";
-        return 1;
-      }
-      std::string filename(argv[opt.index+1]);
+      std::string filename = opt.arg;
       std::cout << "Using file: '" << filename << "'\n";
       break;
     }

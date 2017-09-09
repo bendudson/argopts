@@ -4,7 +4,7 @@
 
 int main(int argc, char **argv) {
 
-  for (auto &opt : ArgOpts().parse(argc, argv)) {
+  for (auto &opt : ArgOpts::Parser().parse(argc, argv)) {
     if ((opt.shortopt == 'h') ||
         (opt.longopt == "help")) {
       std::cout << "Usage:\n" << argv[0] << " [options]\n";
