@@ -5,7 +5,8 @@
 int main(int argc, char **argv) {
   ArgOpts::Parser args = { {'h', "help", "print help message"},
                            {'v', "verbose", "print more"},
-                           {'f', "file", "[FILE] file name"} };
+                           {'f', "file", "[FILE] file name"},
+                           {'n', "number", "Some input integer"}};
   
   auto options = args.parse(argc, argv);
   // first check for help
@@ -17,19 +18,27 @@ int main(int argc, char **argv) {
     }
   }
   // Check other options
-  for (auto &opt: options) {
-    switch (opt.shortopt) {
-    case 'v': {
-      std::cout << "Verbose\n";
-      break;
+  try {
+    for (auto &opt: options) {
+      switch (opt.shortopt) {
+      case 'v': {
+        std::cout << "Verbose\n";
+        break;
+      }
+      case 'f': {
+        // Option to set a file name
+        std::string filename = opt.arg;
+        std::cout << "Using file: '" << filename << "'\n";
+        break;
+      }
+      case 'n': {
+        int num = opt.arg;
+        std::cout << "Got number: " << num << "\n";
+      }
+      }
     }
-    case 'f': {
-      // Option to set a file name
-      std::string filename = opt.arg;
-      std::cout << "Using file: '" << filename << "'\n";
-      break;
-    }
-    }
+  } catch (std::string &s) {
+    std::cout << s;
   }
   
   return 0;

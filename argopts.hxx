@@ -29,10 +29,40 @@
 #include <string>
 #include <sstream>
 #include <initializer_list>
+#include <typeinfo>
+#include <memory>
+
+#ifdef __GNUG__ // gnu C++ compiler
+  #include <cxxabi.h>
+#endif
 
 namespace ArgOpts {
-
-  struct Option;
+#ifdef __GNUG__ // gnu C++ compiler
+  /// This code from http://www.cplusplus.com/forum/beginner/175177/
+  std::string demangle( const char* mangled_name ) {
+    std::size_t len = 0 ;
+    int status = 0 ;
+    std::unique_ptr< char, decltype(&std::free) > ptr(
+                                                      __cxxabiv1::__cxa_demangle( mangled_name, nullptr, &len, &status ),
+                                                      &std::free ) ;
+    return ptr.get() ;
+  }
+  
+#else
+  
+  std::string demangle( const char* name ) { return name ; }
+  
+#endif // _GNUG_
+  
+  /// Default error handler for StringStore
+  struct StringStoreErrorHandler {
+    void missingValue() {
+      throw std::string("Missing value in StringStore");
+    }
+    void parseFailed(const std::string &value, const std::string &type) {
+      throw std::string("Could not convert StringStore '"+value+"' to " + type);
+    }
+  };
   
   /// Stores values as strings, and allows conversion
   /// between types via string storage
@@ -45,9 +75,10 @@ namespace ArgOpts {
   /// can be streamed from a std::stringstream
   /// ie implements the ">>" operator
   ///
+  template<typename ErrorHandler=StringStoreErrorHandler>
   class StringStore {
   public:
-    StringStore() {}
+    StringStore(ErrorHandler handler={}) : handler(std::move(handler)) {}
     StringStore(std::string &value) : value(value) {}
     StringStore(const char *value) : value(value) {}
 
@@ -84,30 +115,22 @@ namespace ArgOpts {
     /// returns an integer
     template <typename T> T get() {
       if (value.length() == 0) {
-        throw "missing value";
+        handler.missingValue();
       }
 
       T t;
       std::stringstream ss(value);
       ss >> t;
       if (ss.fail()) {
-        throw "Failed to parse";
+        handler.parseFailed(value, demangle(typeid(T).name()));
       }
       return t;
     }
 
   private:
     std::string value; ///< The internal data store
-    Option *option;    ///< The option for this argument. May be nullptr
+    ErrorHandler handler;
   };
-
-  /// Trivial case of assignment to string
-  template <> StringStore::operator std::string() {
-    if (value.length() == 0) {
-      throw "missing value";
-    }
-    return value;
-  }
 
   /// Structure representing a command-line option
   ///
@@ -121,7 +144,7 @@ namespace ArgOpts {
     std::string longopt; ///< A string used for the long option
     std::string help;    ///< A help string
     int index;           ///< The index into argv where the option appears
-    StringStore arg;     ///< The argument following the option
+    StringStore<> arg;   ///< The argument following the option
   };
   
   /// Command-line argument options parser
