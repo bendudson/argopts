@@ -9,51 +9,50 @@ Arguments not starting with '-' are ignored, and parsing stops when '--' is foun
 
 All code in a single header file, released under MIT license.
 
-Examples
---------
+Example
+-------
 
-Simple argument parser
-~~~~~~~~~~~~~~~~~~~~~~
+```C++
+  // Short form (single character), long form, and help message
+  ArgOpts::Parser args = { {'h', "help", "print this help message"},
+                           {'f', "file", "[FILE] file name"},
+                           {'n', "number", "[NUMBER] An important integer"}};
 
-    
-    for (auto &opt : ArgOpts().parse(argc, argv)) {
-      if ((opt.shortopt == 'h') ||
-          (opt.longopt == "help")) {
-        std::cout << "Usage:\n" << argv[0] << " [options]\n";
-        std::cout << "Options:\n";
-        std::cout << "-h, --help		print help message\n";
-        std::cout << "-v, --verbose	print more\n";
-   
-      } else if ((opt.shortopt == 'v') ||
-                 (opt.longopt == "verbose")) {
-        std::cout << "Verbose\n";
-   
-      }
+  for (auto &opt : ArgOpts::Parser.parse(argc, argv)) {
+    switch (opt.shortopt) {
+    case 'h': {  // This matches both -h and --help
+      std::cout << "Usage:\n" << argv[0] << " [options]\n";
+      std::cout << "Options:\n" << args.printOptions() << "\n";
+      return 0;
     }
-
-Group short and long options
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Here matches short and long options and handles printing of the option help
-
-   
-    ArgOpts args = { {'h', "help", "print help message"},
-                     {'v', "verbose", "print more"} };
-   
-    for (auto &opt: args.parse(argc, argv)) {
-      switch (opt.shortopt) {
-       case 'v': {
-          std::cout << "Verbose\n";
-          break;
-        }
-       case 'h': { // Print help message
-         std::cout << "Usage:\n" << argv[0] << " [options]\n";
-         std::cout << "Options:\n"
-                   << args.printOptions() << "\n";
-         return 0;
-       }
-      }
+    case 'f': {  // Matches -f and --file
+      std::string filename = opt.arg;
+      std::cout << "Using file: '" << filename << "'\n";
+      break;
     }
+    case 'n': {  // Matches -n and --number
+      int num = opt.arg; // Expect an int as the next argument
+      std::cout << "Got number: " << num << "\n";
+      break;
+    }
+    default: {
+      // Unrecognised option
+    }
+    }
+  }
+```
+
+If an option is missing an error is printed e.g. a missing argument after "-n":
+
+    terminate called after throwing an instance of 'std::invalid_argument'
+    what():  Missing argument, expected type int
+    usage: -n, --number		[NUMBER] An important integer
+
+or if a value cannot be parsed correctly e.g. "-n something":
+
+    terminate called after throwing an instance of 'std::invalid_argument'
+    what():  Invalid argument: expected type int but got 'something'
+    usage: -n, --number		[NUMBER] An important integer
 
 
 MIT licence (OSI)

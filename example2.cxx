@@ -18,27 +18,23 @@ int main(int argc, char **argv) {
     }
   }
   // Check other options
-  try {
-    for (auto &opt: options) {
-      switch (opt.shortopt) {
-      case 'v': {
-        std::cout << "Verbose\n";
-        break;
-      }
-      case 'f': {
-        // Option to set a file name
-        std::string filename = opt.arg;
-        std::cout << "Using file: '" << filename << "'\n";
-        break;
-      }
-      case 'n': {
-        int num = opt.arg;
-        std::cout << "Got number: " << num << "\n";
-      }
-      }
+  for (auto &opt: options) {
+    switch (opt.shortopt) {
+    case 'v': {
+      std::cout << "Verbose\n";
+      break;
     }
-  } catch (std::string &s) {
-    std::cout << s;
+    case 'f': {
+      // Option to set a file name
+      std::string filename = opt.arg;
+      std::cout << "Using file: '" << filename << "'\n";
+      break;
+    }
+    case 'n': {
+      int num = opt.arg; // Expect an int as the next argument
+      std::cout << "Got number: " << num << "\n";
+    }
+    }
   }
   
   return 0;

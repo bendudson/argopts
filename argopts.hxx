@@ -30,7 +30,11 @@
 #include <sstream>
 #include <initializer_list>
 #include <typeinfo>
-#include <memory>
+#include <functional>
+#include <stdexcept>
+#include <memory> // For unique_ptr
+
+#include <iostream>
 
 #ifdef __GNUG__ // gnu C++ compiler
   #include <cxxabi.h>
@@ -38,6 +42,8 @@
 
 namespace ArgOpts {
 #ifdef __GNUG__ // gnu C++ compiler
+
+  
   /// This code from http://www.cplusplus.com/forum/beginner/175177/
   std::string demangle( const char* mangled_name ) {
     std::size_t len = 0 ;
@@ -54,16 +60,6 @@ namespace ArgOpts {
   
 #endif // _GNUG_
   
-  /// Default error handler for StringStore
-  struct StringStoreErrorHandler {
-    void missingValue() {
-      throw std::string("Missing value in StringStore");
-    }
-    void parseFailed(const std::string &value, const std::string &type) {
-      throw std::string("Could not convert StringStore '"+value+"' to " + type);
-    }
-  };
-  
   /// Stores values as strings, and allows conversion
   /// between types via string storage
   ///
@@ -75,12 +71,13 @@ namespace ArgOpts {
   /// can be streamed from a std::stringstream
   /// ie implements the ">>" operator
   ///
-  template<typename ErrorHandler=StringStoreErrorHandler>
   class StringStore {
   public:
-    StringStore(ErrorHandler handler={}) : handler(std::move(handler)) {}
-    StringStore(std::string &value) : value(value) {}
-    StringStore(const char *value) : value(value) {}
+    using ErrorHandler = std::function<void(const std::string&, const std::string&)>;
+    
+    StringStore(ErrorHandler handler = {}) : handler(std::move(handler)) {}
+    StringStore(const std::string &value, ErrorHandler handler = {}) : value(value), handler(std::move(handler)) {}
+    StringStore(const char *value, ErrorHandler handler = {}) : value(value), handler(std::move(handler)) {}
 
     /// Constructor from any type T
     /// Tries to stream the input to a std::stringstream
@@ -109,20 +106,18 @@ namespace ArgOpts {
     /// -------
     ///
     /// StringStore s = "3.1415";
-    /// double val = s.get<int>();
+    /// double val = s.get<double>();
     ///
-    /// This sets val to 3, since the get() function
-    /// returns an integer
     template <typename T> T get() {
       if (value.length() == 0) {
-        handler.missingValue();
+        handleError(demangle(typeid(T).name()));
       }
 
       T t;
       std::stringstream ss(value);
       ss >> t;
       if (ss.fail()) {
-        handler.parseFailed(value, demangle(typeid(T).name()));
+        handleError(demangle(typeid(T).name()));
       }
       return t;
     }
@@ -130,21 +125,86 @@ namespace ArgOpts {
   private:
     std::string value; ///< The internal data store
     ErrorHandler handler;
+
+    /// This always throws an exception. The user-supplied
+    /// handler handler may throw, but if not then std::invalid_argument is thrown.
+    void handleError(const std::string &type_name) {
+      if (handler) {
+        handler(value, type_name);
+      }
+      throw std::invalid_argument("could not convert '" + value + "' to " + type_name);
+    }
   };
 
+  template<> std::string StringStore::get<std::string>() {
+    if (value.length() == 0) {
+      handleError("string");
+    }
+    return value;
+  }
+  
   /// Structure representing a command-line option
   ///
   ///
   struct Option {
-    Option(char shortopt, std::string longopt, std::string help,
-           int index = -1)
+    Option(char shortopt, const std::string &longopt, const std::string &help, int index = -1)
       : shortopt(shortopt), longopt(longopt), help(help), index(index) {}
     
     char shortopt;       ///< A single character short option
     std::string longopt; ///< A string used for the long option
     std::string help;    ///< A help string
     int index;           ///< The index into argv where the option appears
-    StringStore<> arg;   ///< The argument following the option
+    StringStore arg;     ///< The argument following the option
+
+    /// Returns a text containing the command-line option and help message
+    /// No newline at the end
+    std::string usage() const {
+      std::string result;
+
+      if (shortopt != 0) {
+        // Has a short option character
+        result += "-" + std::string(1, shortopt);
+        if (longopt.length() != 0) {
+          // Both short and long option, so separate
+          result += ", ";
+        }
+      }
+      if (longopt.length() != 0) {
+        // Has a long option name
+        result += "--" + longopt;
+      }
+      if (help.length() != 0) {
+        result += "\t\t" + help;
+      }
+      return result;
+    }
+  };
+
+  /// A functor which is called by StringStore
+  /// when an error occurs. By storing a reference
+  /// to the Option object, a useful error message
+  /// can be put into an exception.
+  struct OptionErrorHandler {
+    OptionErrorHandler(const Option &option) : option(option) {}
+    
+    void operator()(const std::string &value, const std::string &type_name) {
+      if (value.length() == 0) {
+        // Missing value
+        std::string message = "Missing argument, expected type " + type_name + "\n"
+          "usage: "+ option.usage() + "\n";
+        
+        throw std::invalid_argument(message);
+      }
+
+      // Incorrect type
+      std::string message = "Invalid argument: expected type " + type_name +
+        " but got '"+ value + "'\n"
+        "usage: "+ option.usage() + "\n";
+      
+      throw std::invalid_argument(message);
+    }
+  private:
+    const Option &option;
   };
   
   /// Command-line argument options parser
@@ -237,19 +297,7 @@ namespace ArgOpts {
       std::string result;
 
       for (auto &it : options) {
-        if (it.shortopt != 0) {
-          // Has a short option character
-          result += "-" + std::string(1, it.shortopt);
-          if (it.longopt.length() != 0) {
-            // Both short and long option, so separate
-            result += ", ";
-          }
-        }
-        if (it.longopt.length() != 0) {
-          // Has a long option name
-          result += "--" + it.longopt;
-        }
-        result += "\t\t" + it.help + "\n";
+        result += it.usage() + "\n";
       }
       return result;
     }
@@ -311,11 +359,15 @@ namespace ArgOpts {
             options_found.push_back({0, found, "", i});
           }
 
+          std::string argvalue;  // The next entry in argv, empty if none
           if (i != argc - 1) {
             // inputs still remaining. At this point we don't know if an argument
             // is expected for this option so use the next argv value
-            options_found.back().arg = std::string(argv[i + 1]);
+            argvalue = std::string(argv[i + 1]);
           }
+          // Create an error handler object which is called if there is a conversion error
+          Option &option = options_found.back();
+          option.arg = StringStore(argvalue, OptionErrorHandler(option));
         } else {
           // A short option. This consists of a single '-'
           // followed by one or more characters.
@@ -340,12 +392,16 @@ namespace ArgOpts {
               options_found.push_back({c, "", "", i});
             }
 
+            std::string argvalue;
             if (i != argc - 1) {
               // inputs still remaining. At this point we don't know if an
               // argument
               // is expected for this option so use the next argv value
-              options_found.back().arg = std::string(argv[i + 1]);
+              argvalue = std::string(argv[i + 1]);
             }
+            // Create an error handler object which is called if there is a conversion error
+            Option &option = options_found.back();
+            option.arg = StringStore(argvalue, OptionErrorHandler(option));
 
             index++; // Next character
           }
