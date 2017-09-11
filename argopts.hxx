@@ -33,6 +33,7 @@
 #include <functional>
 #include <stdexcept>
 #include <memory> // For unique_ptr
+#include <cctype> // for isdigit
 
 #include <iostream>
 
@@ -332,6 +333,10 @@ namespace ArgOpts {
         }
         if (argv[i][1] == 0) {
           // Just a '-'; ignore
+          continue;
+        }
+        if ( std::isdigit(static_cast<unsigned char>(argv[i][1])) ) {
+          // A digit 0-9. Leading '-' is probably part of a number, so ignore
           continue;
         }
         if (argv[i][1] == '-') {

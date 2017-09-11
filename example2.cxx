@@ -33,6 +33,11 @@ int main(int argc, char **argv) {
     case 'n': {
       int num = opt.arg; // Expect an int as the next argument
       std::cout << "Got number: " << num << "\n";
+      break;
+    }
+    default: {
+      std::cout << "Unrecognised option " << opt.usage() << "\n";
+      return 1;
     }
     }
   }
