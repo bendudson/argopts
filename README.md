@@ -13,11 +13,18 @@ Example
 -------
 
 ```C++
-  // Short form (single character), long form, and help message
+#include <iostream>
+#include "argopts.hxx"
+
+int main(int argc, char **argv) {
+
+  // Specify the arguments to recognise (this is optional)
+  // Format is:
+  //   { Short form (single character), long form, help message }
   ArgOpts::Parser args = { {'h', "help", "print this help message"},
                            {'f', "file", "[FILE] file name"},
                            {'n', "number", "[NUMBER] An important integer"}};
-
+  
   for (auto &opt : ArgOpts::Parser.parse(argc, argv)) {
     switch (opt.shortopt) {
     case 'h': {  // This matches both -h and --help
@@ -36,24 +43,50 @@ Example
       break;
     }
     default: {
-      // Unrecognised option
+      std::cerr << "Unrecognised option " << opt.usage() << "\n";
+      return 1;
     }
     }
+
+    // Program does useful things...
+
+    return 0;
   }
 ```
 
-If an option is missing an error is printed e.g. a missing argument after "-n":
+This example throws an exception  if an option is missing, so
+an error is printed e.g. a missing argument after "-n":
 
     terminate called after throwing an instance of 'std::invalid_argument'
     what():  Missing argument, expected type int
     usage: -n, --number		[NUMBER] An important integer
 
-or if a value cannot be parsed correctly e.g. "-n something":
+or if a value cannot be parsed correctly e.g. putting "-n something" on the
+command-line results in:
 
     terminate called after throwing an instance of 'std::invalid_argument'
     what():  Invalid argument: expected type int but got 'something'
     usage: -n, --number		[NUMBER] An important integer
 
+Similar projects
+----------------
+
+Command-line parsing is a pretty common itch, which has been scratched many times.
+For example:
+
+* optionparser http://optionparser.sourceforge.net
+* cxxopts https://github.com/jarro2783/cxxopts
+* Argh! https://github.com/adishavit/argh
+* docopt https://github.com/docopt/docopt.cpp
+* Clara https://github.com/philsquared/Clara
+* TCLAP http://tclap.sourceforge.net/
+* args https://github.com/Taywee/args
+* GetPot http://getpot.sourceforge.net/
+* gflags https://gflags.github.io/gflags/
+
+Of these, ArgOpts is probably closest to Argh! in that it is quite relaxed about
+accepting input, ignores things it doesn't recognise, and tests type
+conversion as needed.
 
 MIT licence (OSI)
 -----------------
