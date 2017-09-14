@@ -117,9 +117,21 @@ namespace ArgOpts {
       T t;
       std::stringstream ss(value);
       ss >> t;
+      
+      // Check if the parse failed
       if (ss.fail()) {
         handleError(demangle(typeid(T).name()));
       }
+      // Check if there are characters remaining
+      std::string remainder;
+      std::getline(ss, remainder);
+      for (const char &ch : remainder) {
+        if (!std::isspace(static_cast<unsigned char>(ch))) {
+          // Meaningful character not parsed
+          handleError(demangle(typeid(T).name()));
+        }
+      }
+      
       return t;
     }
 

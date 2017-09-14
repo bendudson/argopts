@@ -12,7 +12,7 @@ CXXFLAGS += -g -Wall -Wextra -pthread -std=c++11
 check: tests
 	./tests
 
-tests: gtest-all.o test_argopts.cxx
+tests: gtest-all.o test_argopts.cxx argopts.hxx
 	$(CXX) -o $@ test_argopts.cxx gtest-all.o $(CXXFLAGS)
 
 gtest-all.o: googletest/README.md

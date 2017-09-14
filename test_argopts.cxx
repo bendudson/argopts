@@ -20,6 +20,10 @@ TEST(StringStoreTest, DoubleTest) {
   ASSERT_DOUBLE_EQ(val, 3.1415);
 }
 
+TEST(StringStoreTest, DoubleToIntFail) {
+  ArgOpts::StringStore s("3.1415");
+  ASSERT_ANY_THROW ( int val = s; );
+}
 
 
 int main(int argc, char **argv) {
