@@ -73,6 +73,37 @@ TEST(ParserSimpleTests, SingleShortArg) {
   EXPECT_ANY_THROW( std::string str = opt.arg; );
 }
 
+TEST(ParserSimpleTests, SingleShortArgValue) {
+  const char* argv[] = {"somecode", "-a", "value"};
+  auto args = ArgOpts::Parser().parse(3, const_cast<char**>(argv));
+
+  ASSERT_EQ( args.size(), 1 );
+
+  ArgOpts::Option& opt = args.front();
+  EXPECT_EQ( opt.shortopt, 'a' );
+  EXPECT_EQ( opt.longopt, "" );
+  EXPECT_EQ( opt.help, "" );
+  EXPECT_EQ( opt.index, 1 );
+  std::string str = opt.arg;
+  EXPECT_EQ( str, "value" );
+}
+
+TEST(ParserSimpleTests, SingleShortArgEquals) {
+  const char* argv[] = {"somecode", "-a=value"};
+  auto args = ArgOpts::Parser().parse(2, const_cast<char**>(argv));
+
+  ASSERT_GT( args.size(), 0 );
+  EXPECT_EQ( args.size(), 1 );
+
+  ArgOpts::Option& opt = args.front();
+  EXPECT_EQ( opt.shortopt, 'a' );
+  EXPECT_EQ( opt.longopt, "" );
+  EXPECT_EQ( opt.help, "" );
+  EXPECT_EQ( opt.index, 1 );
+  std::string str = opt.arg;
+  EXPECT_EQ( str, "value" );
+}
+
 TEST(ParserSimpleTests, SingleLongArg) {
   const char* argv[] = {"somecode", "--thing"};
   auto args = ArgOpts::Parser().parse(2, const_cast<char**>(argv));
@@ -82,6 +113,59 @@ TEST(ParserSimpleTests, SingleLongArg) {
   ArgOpts::Option& opt = args.front();
   EXPECT_EQ( opt.shortopt, 0 );
   EXPECT_EQ( opt.longopt, "thing" );
+  EXPECT_EQ( opt.help, "" );
+  EXPECT_EQ( opt.index, 1 );
+  EXPECT_ANY_THROW( std::string str = opt.arg; );
+}
+
+TEST(ParserSimpleTests, SingleLongArgEquals) {
+  const char* argv[] = {"somecode", "--thing=value"};
+  auto args = ArgOpts::Parser().parse(2, const_cast<char**>(argv));
+
+  ASSERT_EQ( args.size(), 1 );
+
+  ArgOpts::Option& opt = args.front();
+  EXPECT_EQ( opt.shortopt, 0 );
+  EXPECT_EQ( opt.longopt, "thing" );
+  EXPECT_EQ( opt.help, "" );
+  EXPECT_EQ( opt.index, 1 );
+  
+  std::string str = opt.arg;
+  EXPECT_EQ( str, "value" );
+}
+
+TEST(ParserSimpleTests, SingleLongArgValue) {
+  const char* argv[] = {"somecode", "--thing", "value"};
+  auto args = ArgOpts::Parser().parse(3, const_cast<char**>(argv));
+
+  ASSERT_EQ( args.size(), 1 );
+
+  ArgOpts::Option& opt = args.front();
+  EXPECT_EQ( opt.shortopt, 0 );
+  EXPECT_EQ( opt.longopt, "thing" );
+  EXPECT_EQ( opt.help, "" );
+  EXPECT_EQ( opt.index, 1 );
+  
+  std::string str = opt.arg;
+  EXPECT_EQ( str, "value" );
+}
+
+TEST(ParserSimpleTests, TwoShortArgs) {
+  const char* argv[] = {"somecode", "-ab"};
+  auto args = ArgOpts::Parser().parse(2, const_cast<char**>(argv));
+
+  ASSERT_EQ( args.size(), 2 );
+
+  ArgOpts::Option& opt = args.front();
+  EXPECT_EQ( opt.shortopt, 'a' );
+  EXPECT_EQ( opt.longopt, "" );
+  EXPECT_EQ( opt.help, "" );
+  EXPECT_EQ( opt.index, 1 );
+  EXPECT_ANY_THROW( std::string str = opt.arg; );
+
+  opt = args.back();
+  EXPECT_EQ( opt.shortopt, 'b' );
+  EXPECT_EQ( opt.longopt, "" );
   EXPECT_EQ( opt.help, "" );
   EXPECT_EQ( opt.index, 1 );
   EXPECT_ANY_THROW( std::string str = opt.arg; );

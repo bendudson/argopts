@@ -358,10 +358,31 @@ namespace ArgOpts {
             break;
           }
           // A long option
-          std::string found = std::string(&argv[i][2]);
+          std::string longarg = std::string(&argv[i][2]);
+
+          std::string argvalue;  // The next entry in argv, empty if none
+          
+          // Check if longarg string contains a '='
+          std::size_t eq_pos = longarg.find_first_of('=');
+          
+          if (eq_pos != std::string::npos) {
+            // longarg does contain '='
+            argvalue = longarg.substr(eq_pos+1); // After the '='
+            longarg = longarg.substr(0,eq_pos); // Before the '-'
+            
+          } else {
+            // No '=', so use next argument
+            
+            if (i != argc - 1) {
+              // inputs still remaining. At this point we don't know if an argument
+              // is expected for this option so use the next argv value
+              argvalue = std::string(argv[i + 1]);
+            }
+          }
+          
           bool matched = false;
           for (auto &it : options) {
-            if (it.longopt == found) {
+            if (it.longopt == longarg) {
               // Found this option
               Option option = it;
               option.index = i;
@@ -373,15 +394,9 @@ namespace ArgOpts {
           if (!matched) {
             // If not found, create a new option
             // Here the short option is set to zero
-            options_found.push_back({0, found, "", i});
+            options_found.push_back({0, longarg, "", i});
           }
-
-          std::string argvalue;  // The next entry in argv, empty if none
-          if (i != argc - 1) {
-            // inputs still remaining. At this point we don't know if an argument
-            // is expected for this option so use the next argv value
-            argvalue = std::string(argv[i + 1]);
-          }
+          
           // Create an error handler object which is called if there is a conversion error
           Option &option = options_found.back();
           option.arg = StringStore(argvalue, OptionErrorHandler(option));
@@ -390,8 +405,28 @@ namespace ArgOpts {
           // followed by one or more characters.
           // Each of these characters is a separate option
 
-          int index = 1; // The character index, skipping '-'
-          while (char c = argv[i][index]) {
+          std::string shortarg = std::string(&argv[i][1]);
+
+          std::string argvalue; // The next entry in argv, empty if none
+          
+          // Check if shortarg string contains a '='
+          std::size_t eq_pos = shortarg.find_first_of('=');
+          
+          if (eq_pos != std::string::npos) {
+            // shortarg does contain '='
+            argvalue = shortarg.substr(eq_pos+1); // After the '='
+            shortarg = shortarg.substr(0,eq_pos); // Before the '-'
+          } else {
+            if (i != argc - 1) {
+              // inputs still remaining. At this point we don't know if an
+              // argument
+              // is expected for this option so use the next argv value
+              argvalue = std::string(argv[i + 1]);
+            }
+          }
+
+          // Iterate through each character
+          for (char c : shortarg) {
             bool matched = false;
             for (auto &it : options) {
               if (it.shortopt == c) {
@@ -409,18 +444,9 @@ namespace ArgOpts {
               options_found.push_back({c, "", "", i});
             }
 
-            std::string argvalue;
-            if (i != argc - 1) {
-              // inputs still remaining. At this point we don't know if an
-              // argument
-              // is expected for this option so use the next argv value
-              argvalue = std::string(argv[i + 1]);
-            }
             // Create an error handler object which is called if there is a conversion error
             Option &option = options_found.back();
             option.arg = StringStore(argvalue, OptionErrorHandler(option));
-
-            index++; // Next character
           }
         }
       }

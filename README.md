@@ -1,13 +1,21 @@
 ArgOpts
 =======
 
-A simple command line option parser for C++11. 
+A simple command line option parser for C++11.
 
-Matches short options like "-h", "-v" and long options like "--help", "--verbose".
-Short options can be combined, so "-hvv" is equivalent to "-h -v -v".
-Arguments not starting with '-' are ignored, and parsing stops when '--' is found.
+Features
+--------
 
-All code in a single header file, released under MIT license.
+* Short options like "-h", "-v", which can be combined so that "-hvv" is equivalent to "-h -v -v".
+* Long options like "--help", "--verbose".
+* Values set using "--output=somefile.txt" or "--output somefile.txt" syntax.
+* For short options "-ab=value" or "-ab value" is equivalent to "-a=value -b=value".
+* Arguments not starting with '-' are ignored, and parsing stops when '--' is found.
+* Stringstream for type conversion, allowing simple extension for custom types.
+* Error handling using exceptions.
+* Unit testing with Google Test (https://github.com/google/googletest)
+* All code in a single header file.
+* Released under MIT license.
 
 Example
 -------
@@ -54,7 +62,7 @@ int main(int argc, char **argv) {
   }
 ```
 
-This example throws an exception  if an option is missing, so
+This example throws an exception if an option is missing, so
 an error is printed e.g. a missing argument after "-n":
 
     terminate called after throwing an instance of 'std::invalid_argument'
