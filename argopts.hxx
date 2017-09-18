@@ -34,6 +34,8 @@
 #include <stdexcept>
 #include <memory> // For unique_ptr
 #include <cctype> // for isdigit
+#include <locale> // for wstring_convert
+#include <codecvt> 
 
 #include <iostream>
 
@@ -160,10 +162,10 @@ namespace ArgOpts {
   ///
   ///
   struct Option {
-    Option(char shortopt, const std::string &longopt, const std::string &help, int index = -1)
+    Option(char32_t shortopt, const std::string &longopt, const std::string &help, int index = -1)
       : shortopt(shortopt), longopt(longopt), help(help), index(index) {}
     
-    char shortopt;       ///< A single character short option
+    char32_t shortopt;       ///< A single character short option
     std::string longopt; ///< A string used for the long option
     std::string help;    ///< A help string
     int index;           ///< The index into argv where the option appears
@@ -301,7 +303,7 @@ namespace ArgOpts {
     /// string for no long name
     /// @param[in] help        A short help message, briefly describing the option
     ///
-    void add(char shortopt, const std::string &longopt, const std::string &help) {
+    void add(char32_t shortopt, const std::string &longopt, const std::string &help) {
       options.push_back({shortopt, longopt, help});
     }
 
@@ -338,7 +340,6 @@ namespace ArgOpts {
       // Loop through argv, skipping index 0
       // since this is usually the command
       for (int i = 1; i < argc; i++) {
-
         if (argv[i][0] != '-') {
           // Skip anything without a '-' at the start
           continue;
@@ -390,9 +391,12 @@ namespace ArgOpts {
           // followed by one or more characters.
           // Each of these characters is a separate option
 
-          int index = 1; // The character index, skipping '-'
-          while (char c = argv[i][index]) {
-            bool matched = false;
+          // Convert from utf8 to utf32, skipping '-'
+          std::u32string utf32 = std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t>{}.from_bytes(&argv[i][1]);
+          // Iterate over code units
+          for(char32_t c : utf32) {
+
+            bool matched = false; // matched known option
             for (auto &it : options) {
               if (it.shortopt == c) {
                 // Found this option
@@ -419,8 +423,6 @@ namespace ArgOpts {
             // Create an error handler object which is called if there is a conversion error
             Option &option = options_found.back();
             option.arg = StringStore(argvalue, OptionErrorHandler(option));
-
-            index++; // Next character
           }
         }
       }
