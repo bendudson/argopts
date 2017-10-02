@@ -32,8 +32,11 @@ int main(int argc, char **argv) {
   ArgOpts::Parser args = { {'h', "help", "print this help message"},
                            {'f', "file", "[FILE] file name"},
                            {'n', "number", "[NUMBER] An important integer"}};
+
+  std::string filename;
+  int num = 0;
   
-  for (auto &opt : ArgOpts::Parser.parse(argc, argv)) {
+  for (auto &opt : args.parse(argc, argv)) {
     switch (opt.shortopt) {
     case 'h': {  // This matches both -h and --help
       std::cout << "Usage:\n" << argv[0] << " [options]\n";
@@ -41,12 +44,12 @@ int main(int argc, char **argv) {
       return 0;
     }
     case 'f': {  // Matches -f and --file
-      std::string filename = opt.arg;
+      filename = opt.arg;
       std::cout << "Using file: '" << filename << "'\n";
       break;
     }
     case 'n': {  // Matches -n and --number
-      int num = opt.arg; // Expect an int as the next argument
+      num = opt.arg; // Expect an int as the next argument
       std::cout << "Got number: " << num << "\n";
       break;
     }
